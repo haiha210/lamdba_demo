@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@sparticuz/chromium": "112",
+    "handlebars": "^4.7.7",
+    "puppeteer-core": "19.8.0"
+  }
+}
