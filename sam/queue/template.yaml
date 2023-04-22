@@ -1,0 +1,120 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: |
+  "SAM Template for sam-tutorial"
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: {default: 'Optional parameters'}
+        Parameters:
+          - ProjectName
+
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: 'Name of the project'
+    Default: 'sam-tutorial'
+
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+        - "arn:aws:iam::aws:policy/AmazonSNSFullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+      Path: "/"
+      RoleName: "sam-app-role"
+
+  # SnsTopicSamTutorial:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     TopicName: !Sub '${ProjectName}'
+  #     Subscription:
+  #       - Protocol: sqs
+  #         Endpoint: !GetAtt SqsQueueSamTutorial.Arn
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub '${ProjectName}'
+
+  SqsQueueSamTutorial:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: demo.fifo
+      FifoQueue: True
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}'
+
+  # function with zip file
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/demo
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          Endpoint: !Ref SqsQueueSamTutorial
+    Policies:
+      - SQSPollerPolicy:
+          QueueName:
+            !GetAtt SqsQueueSamTutorial.QueueName
+
+  # function with image docker
+  # HelloWorldFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     # CodeUri: src/handlers/demo
+  #     # Handler: app.handler
+  #     # Runtime: nodejs14.x
+  #     Role: !GetAtt LambdaExecutionRole.Arn
+  #     PackageType: Image
+  #     ImageUri: !GetAtt HelloECRRepository.RepositoryUri
+  #     Environment:
+  #       Variables:
+  #         Endpoint: !Ref SqsQueueSamTutorial
+  #   DependsOn: HelloECRRepository
+  #   Policies:
+  #     - SQSPollerPolicy:
+  #         QueueName:
+  #           !GetAtt SqsQueueSamTutorial.QueueName
+  #   Metadata:
+  #     Dockerfile: Dockerfile
+  #     DockerContext: src/handlers/demo
+  #     DockerTag: v1
+
+  # HelloECRRepository:
+  #   Type: AWS::ECR::Repository
+  #   Properties:
+  #     RepositoryName: 'hello-repository'
+
+  LambdaSamTutorial:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}'
+      CodeUri: src/handlers/queue
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Events:
+        SqsTrigger:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SqsQueueSamTutorial.Arn
+            BatchSize: 10
+
