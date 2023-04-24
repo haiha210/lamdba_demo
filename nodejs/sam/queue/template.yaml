@@ -117,4 +117,7 @@ Resources:
           Properties:
             Queue: !GetAtt SqsQueueSamTutorial.Arn
             BatchSize: 10
+      Environment:
+        Variables:
+          Endpoint: !Ref SqsQueueSamTutorial
 
