@@ -39,6 +39,17 @@ exports.handler = async (event) => {
     })
 
     const a = await ses.sendRawEmail(params).promise();
+    const sqs = new AWS.SQS({ apiVersion: '2012-11-05' });
+    const QueueUrl = process.env.Endpoint;
+    params = {
+      Entries: event.Records.map((item) => ({
+        Id: item.messageId,
+        ReceiptHandle: item.receiptHandle,
+      })),
+      QueueUrl: QueueUrl,
+    };
+
+    await sqs.deleteMessageBatch(params).promise();
     return {
       body: "demo",
       statusCode: 200
