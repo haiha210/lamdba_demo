@@ -10,7 +10,7 @@ exports.handler = async (event) => {
 
     const SOURCE_EMAIL = body.email;
     const toEmail = "example1@gmail.com"
-    var ses_mail = "From: <" + SOURCE_EMAIL + ">\n";
+    let ses_mail = "From: <" + SOURCE_EMAIL + ">\n";
     ses_mail += "To: " + toEmail + "\n";
     ses_mail += "Subject: example title\n";
     ses_mail += "MIME-Version: 1.0\n";
